@@ -1,5 +1,5 @@
 package CAD::Drawing::IO::Tk;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use CAD::Drawing;
 use CAD::Drawing::Defined;
@@ -12,14 +12,16 @@ use CAD::Calc qw(dist2d);
 
 our $is_inherited = 1;
 
-use Tk;
-use Tk::WorldCanvas;
 
 use vars qw(
 	%dsp
 	$textsize
+	$text_base
 	);
 
+$text_base = 8;
+
+use warnings;
 use strict;
 use Carp;
 
@@ -42,13 +44,14 @@ deprecated by the time you read this.
 
 =head1 AUTHOR
 
-  Eric L. Wilhelm
-  ewilhelm at sbcglobal dot net
-  http://pages.sbcglobal.net/mycroft
+Eric L. Wilhelm <ewilhelm at cpan dot org>
+
+http://scratchcomputing.com
 
 =head1 COPYRIGHT
 
-This module is copyright (C) 2003 by Eric L. Wilhelm and A. Zahner Co.
+This module is copyright (C) 2004-2006 by Eric L. Wilhelm.  Portions
+copyright (C) 2003 by Eric L. Wilhelm and A. Zahner Co.
 
 =head1 LICENSE
 
@@ -64,9 +67,9 @@ You may use this software under one of the following licenses:
 
 =head1 NO WARRANTY
 
-This software is distributed with ABSOLUTELY NO WARRANTY.  The author
-and his employer will in no way be held liable for any loss or damages
-resulting from its use.
+This software is distributed with ABSOLUTELY NO WARRANTY.  The author,
+his former employer, and any other contributors will in no way be held
+liable for any loss or damages resulting from its use.
 
 =head1 Modifications
 
@@ -82,16 +85,10 @@ notification of any intended changes or extensions would be most helpful
 in avoiding repeated work for all parties involved.  Please contact the
 author with any such development plans.
 
-
 =head1 SEE ALSO
 
   CAD::Drawing::IO
   Tk
-
-=head1 Changes
-
-  0.02 First public release
-  0.03 Fighting with Fonts (time to abandon Tk)
 
 =cut
 
@@ -117,7 +114,8 @@ be the issue that a debug popup does not know it will appear when the
 entities are created, while a drafting viewport does (or does it?)
 
 Possibly, adding a list of tk-id's to each $obj as it is drawn would be
-a good starting point.
+a good starting point, but this gets us into trouble with multiple
+viewports.
 
 =cut
 
@@ -126,6 +124,8 @@ a good starting point.
 Creates a new window (no options are required.)
 
   $drw->show(%options);
+
+=over
 
 =item Available Options
 
@@ -141,10 +141,15 @@ Creates a new window (no options are required.)
   hang      => boolean      -- if not, you just get the canvas widget
   items     => \@list       -- sorry, not compatible with select_addr :(
 
+=back
+
 =cut
 sub show {
 	my $self = shift;
 	my %options = @_;
+	# XXX cannot do "use" or we get silly _TK_EXIT_(0) from everywhere!
+	require Tk;
+	require Tk::WorldCanvas;
 	my $kidpid;
 	if($options{forkokay}) {
 		$SIG{CHILD} = 'IGNORE';
@@ -168,48 +173,17 @@ sub show {
 	$options{title} || ($options{title} = "Drawing");
 	$mw->title($options{title});
 	my ($w,$h) = @{$options{size}};
-########################################################################
-#    my $bbox = [-$w, -$h, $w, $h];
-#    $options{bbox} = $bbox;
-#    my $cnv = $mw->Scrolled(
-#                "Canvas", 
-#                '-bg' => $options{bgcolor},
-#                '-xscrollincrement' => 1,
-#                '-yscrollincrement' => 1,
-#                '-confine' => 1,
-#                '-scrollbars' => "se",
-#                '-width' => $options{size}[0],
-#                '-height' => $options{size}[1],
-#                '-scrollregion' => $bbox,
-#                );
-#    $cnv->pack('-fill' => 'both', '-expand' => 1, -side => "top");
-#    ###################################################################
-#    # FIXME: this needs a lot of work
-#    push(@{$self->{tk}}, {mainwindow => $mw});
-#    my $tkitem = scalar(@{$self->{tk}}) - 1;
-#    print "item count: $tkitem\n";
-#    push(@{$self->{tk}[$tkitem]{canvas}}, $cnv);
-#    # not sure about saving a big list of these
-#    ###################################################################
-#    $self->tkbindings($mw, $cnv);
-#    $options{noclear} || ($cnv->selectClear);
-#    $options{items} || ($options{items} = $self->select_addr({all=>1}));
-##    print "items: @{$options{items}}\n";
-#    $self->fit_to_bound([[0,0],[$w,$h]],
-#            [[5,5],[5,5]],
-#            {center => [$w / 2, $h/ 2]});
-#    $self->Draw($cnv, %options);
-#    $self->tksetview($cnv, %options);
-##    $cnv->configure(-scrollregion => [-100,-100,100,100]);
-########################################################################
-	# new method:
 #    print "requesting $w x $h\n";
 	my $cnv = $mw->WorldCanvas(
 				'-bg' => $options{bgcolor},
 				'-width' => $options{size}[0],
 				'-height' => $options{size}[1],
 				);
+	# XXX scrolling when you want to wheelzoom is icky.  What's up with
+	# that? (Tk::Canvas is a mess, that's what!)
+	## print "bound to ", $cnv->bind('<4>'), "\n";
 	$cnv->pack(-fill => 'both', -expand=>1);
+	# XXX break this out into pieces
 	my $stl;
 	my %stl_conf = (
 			-anchor => "sw",
@@ -232,6 +206,7 @@ sub show {
 #        -width => $w,
 #        );
 #    $cmd->pack(-fill => 'x', -expand=>0, -side => "bottom");
+	# XXX $self here is a drawing, maybe that's not what we want...
 	$self->tkbindings($mw, $cnv, $stl);
 	$options{items} || ($options{items} = $self->select_addr({all=>1}));
 	$self->Draw($cnv, %options);
@@ -305,6 +280,8 @@ sub tkbindings {
 #    $mw->bind('<q>' => sub{$mw->destroy});
 #    $cnv->CanvasBind('<q>' => sub{print "called\n";exit;});
 	$mw->bind('<q>' => sub {$mw->destroy});
+
+	# XXX move this...
 	# middle-button pan:
 	my @pan_start;
 	my $drag_current;
@@ -344,7 +321,7 @@ sub tkbindings {
 	# XXX this is going to have some odd behaviour for now, but it isn't
 	# worth trying to make a word-processor widget behave like scalable
 	# text.
-	$textsize = 8;
+	$textsize = $text_base;
 	$cnv->fontCreate(
 			'cad-drawing-font',
 			-family => 'lucidasans',
@@ -357,14 +334,23 @@ sub tkbindings {
 #    print "width is: ", $cnv->cget(-width), "\n";
 	
 	# mouse-wheel zooming:
-	$cnv->CanvasBind('<4>' => sub{
+	$cnv->CanvasBind('<Button-4>' => sub{
 				$cnv->zoom(1.125);
 				text_size_reset($cnv);
 				# print "$textsize\n";
+				if(0) {
+					package Tk::WorldCanvas;
+					my $pdata = $cnv->privateData();
+					print "pdata: $pdata\n";
+					foreach my $key (keys(%$pdata)) {
+						print "$key: $pdata->{$key}\n";
+					}
+					print "size is now $pdata->{width} x $pdata->{height}\n";
+				}
 
 			}
 			);
-	$cnv->CanvasBind('<5>' => sub{
+	$cnv->CanvasBind('<Button-5>' => sub{
 				$cnv->zoom(1/1.125);
 				text_size_reset($cnv);
 			}
@@ -404,7 +390,7 @@ sub text_size_reset {
 	my $disp = $cnv->cget(-width);
 	# print "showing $width in $disp\n";
 	# print "scale is ", $disp / $width, "\n";
-	$textsize = 3 * $disp / $width;
+	$textsize = $text_base * $disp / $width;
 	# print "textsize is $textsize\n";
 	# XXX this is really getting to be a pain (too-large text causes slow-down)
 	($textsize > 100) && ($textsize = 100);

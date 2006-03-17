@@ -1,165 +1,19 @@
-NAME
-    CAD::Drawing::IO::Tk - GUI I/O methods for CAD::Drawing
+CAD::Drawing::IO::Tk
 
-NOTICE
-    This module is considered extremely pre-ALPHA and its use is probably
-    deprecated by the time you read this.
+INSTALLATION
 
-AUTHOR
-      Eric L. Wilhelm
-      ewilhelm at sbcglobal dot net
-      http://pages.sbcglobal.net/mycroft
+To install this module, run the following commands:
 
-COPYRIGHT
-    This module is copyright (C) 2003 by Eric L. Wilhelm and A. Zahner Co.
+    perl Build.PL
+    ./Build
+    ./Build test
+    ./Build install
 
-LICENSE
-    This module is distributed under the same terms as Perl. See the Perl
-    source package for details.
 
-    You may use this software under one of the following licenses:
+DOCUMENTATION
 
-      (1) GNU General Public License
-        (found at http://www.gnu.org/copyleft/gpl.html)
-      (2) Artistic License
-        (found at http://www.perl.com/pub/language/misc/Artistic.html)
+After installing, you can find documentation for this module with the perldoc command.
 
-NO WARRANTY
-    This software is distributed with ABSOLUTELY NO WARRANTY. The author and
-    his employer will in no way be held liable for any loss or damages
-    resulting from its use.
+    perldoc CAD::Drawing::IO::Tk
 
-Modifications
-    The source code of this module is made freely available and
-    distributable under the GPL or Artistic License. Modifications to and
-    use of this software must adhere to one of these licenses. Changes to
-    the code should be noted as such and this notification (as well as the
-    above copyright information) must remain intact on all copies of the
-    code.
-
-    Additionally, while the author is actively developing this code,
-    notification of any intended changes or extensions would be most helpful
-    in avoiding repeated work for all parties involved. Please contact the
-    author with any such development plans.
-
-SEE ALSO
-      CAD::Drawing::IO
-      Tk
-
-Changes
-      0.02 First public release
-      0.03 Fighting with Fonts (time to abandon Tk)
-
-Methods
-    There is no constructor for this class, its methods are inherited via
-    CAD::Drawing::IO
-
-Thoughts
-    Need to re-structure the entire deal to have its own object which
-    belongs to the drawing object (or does the drawing object belong to this
-    object?) Either way, we need to be able to build-up into interactive
-    commands (possibly using eval("\$drw->$command"); ?)
-
-    Ultimately, the focus here will likely drift toward supporting perlcad
-    and enabling use of perlcad from within CAD::Drawing scripts. However,
-    the nature of lights-out scripting vs the nature of on-screen drafting
-    is quite different, so there will be some tricks involved. Once each
-    entity has its own class, the ability to install callbacks and the
-    resolution of notifications should get easier. But, there will still be
-    the issue that a debug popup does not know it will appear when the
-    entities are created, while a drafting viewport does (or does it?)
-
-    Possibly, adding a list of tk-id's to each $obj as it is drawn would be
-    a good starting point.
-
-  show
-
-    Creates a new window (no options are required.)
-
-      $drw->show(%options);
-
-    Available Options
-      forkokay  => bool         -- Attempt to fork the new window
-      window    => MainWindow   -- Use the pre-existing Tk object
-      stl       => Message      -- Use pre-existing Message widget
-      size      => [W,H]        -- Specify window size in pixels
-      width     => W            -- alias to size
-      height    => H            -- ditto
-      center    => [X,Y]        -- Center the drawing at (X,Y)
-      scale     => factor       -- Zoom by factor (default to fit)
-      bgcolor   => color        -- defaults to "white"
-      hang      => boolean      -- if not, you just get the canvas widget
-      items     => \@list       -- sorry, not compatible with select_addr :(
-
-  Draw
-
-    Draws geometry on the Tk canvas $cnv. List of items to draw must be
-    specified via addresses stored in $options{items}.
-
-    The newest fad (:e) is the $options{tag} argument, which uses
-    addr_to_tktag() to tag the item.
-
-      $drw->Draw($cnv, %options);
-
-  tkbindings
-
-    Setup the keybindings.
-
-      $drw->tkbindings($mw, $cnv);
-
-  text_size_reset
-
-      text_size_reset($cnv);
-
-  free_dist
-
-      free_dist();
-
-  windowzoom
-
-    Creates temporary bindings to drawing a rubber-band box.
-
-      windowzoom($cnv);
-
-  tksetview
-
-    No longer used
-
-      $drw->tksetview($cnv, %options);
-
-  scalebox
-
-    Returns the scaling required to create a view which most closely matches
-    @ext to @size of canvas.
-
-      $scale = $drw->scalebox(\@size, \@ext);
-
-  dsp subroutine refs
-
-    each of these should do everything necessary to draw the item on the
-    canvas (but they might like to have a few options available?) and then
-    return a list of the Tk id's of the created items. Caller will then
-    assign identical tags to each id which is returned by each per-entity
-    call.
-
-  tkpoint
-
-    Returns only the first and second element of an array reference as a
-    list.
-
-      @xy_point = tkpoint(\@pt);
-
-  addr_to_tktag
-
-    Returns a stringified tag of form: <layer>###<type>###<id>
-
-      my $tag = $drw->addr_to_tktag($addr);
-
-  tktag_to_addr
-
-    Returns an anonymous hash reference which should serve as an address,
-    provided that $tag is a valid <layer>###<type>###<id> tag (and that the
-    entity exists in the $drw object (check this yourself.)
-
-      my $addr = $drw->tktag_to_addr($tag);
 
